@@ -1,32 +1,88 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>CIO Email to HTML Converter</title>
+  <title>CIO Email → HTML Converter</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script defer src="converter.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="color-scheme" content="dark light">
 </head>
-<body class="bg-gray-100 min-h-screen p-6">
-  <div class="max-w-5xl mx-auto bg-white p-8 rounded-lg shadow">
-    <h1 class="text-2xl font-bold mb-6">📧 CIO Email to HTML Converter</h1>
-    <label class="block mb-2 font-medium">Step 1: Upload your Customer.io Template</label>
-    <input id="fileInput" type="file" accept=".html,.txt" class="mb-4 border p-2 rounded w-full" />
-    <label class="block mt-4 font-medium">Step 2: Optional Sample Data</label>
-    <textarea id="sampleData" rows="4" placeholder='{"event.customer_name": "Jane Smith"}' class="w-full border p-2 rounded"></textarea>
-    <button id="convertBtn" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">🔁 Convert to HTML</button>
-    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <h2 class="font-semibold mb-2">Original Template</h2>
-        <textarea id="originalHTML" class="w-full h-80 border p-2 rounded" readonly></textarea>
-      </div>
-      <div>
-        <h2 class="font-semibold mb-2">Converted HTML</h2>
-        <textarea id="convertedHTML" class="w-full h-80 border p-2 rounded" readonly></textarea>
-      </div>
+<body class="bg-gray-50 text-gray-900 min-h-screen">
+  <header class="bg-white border-b">
+    <div class="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
+      <h1 class="text-xl md:text-2xl font-bold">📧 Customer.io Email → HTML Converter</h1>
+      <a class="text-sm text-blue-600 hover:underline" href="https://customer.io/docs/">{{ '{' }}{ Documentation }}</a>
     </div>
-    <button id="downloadBtn" class="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 hidden">💾 Download Converted HTML</button>
-  </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Left column: Inputs -->
+      <section class="bg-white rounded-lg border p-4 md:p-6">
+        <h2 class="font-semibold text-lg mb-3">1) Provide your Customer.io template</h2>
+        <div class="space-y-3">
+          <label class="block text-sm font-medium">Paste template (HTML or Liquid)</label>
+          <textarea id="pasteInput" rows="10" placeholder="Paste your Customer.io email HTML here..." class="w-full border rounded p-3 font-mono text-sm"></textarea>
+
+          <div class="flex items-center gap-3">
+            <span class="text-sm text-gray-500">or</span>
+            <label class="inline-flex items-center gap-2 cursor-pointer px-3 py-2 border rounded bg-gray-50 hover:bg-gray-100">
+              <input id="fileInput" type="file" accept=".html,.txt" class="hidden" />
+              <span>Upload file</span>
+            </label>
+            <span id="fileName" class="text-sm text-gray-500"></span>
+          </div>
+
+          <label class="block text-sm font-medium mt-2">Optional sample data (JSON)</label>
+          <textarea id="sampleData" rows="5" class="w-full border rounded p-3 font-mono text-sm" placeholder='{
+  "event.customer_name": "Jane Smith",
+  "event.vehicle_make": "Toyota",
+  "event.license_plate_number": "ABC123",
+  "customer.first_name": "Jane"
+}'></textarea>
+
+          <div class="flex flex-wrap gap-3 pt-2">
+            <button id="convertBtn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">🔁 Convert</button>
+            <button id="downloadBtn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 hidden">💾 Download HTML</button>
+            <button id="copyBtn" class="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900 hidden">📋 Copy HTML</button>
+            <button id="resetBtn" class="px-4 py-2 bg-white border rounded hover:bg-gray-50">Reset</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right column: Outputs -->
+      <section class="bg-white rounded-lg border p-4 md:p-6">
+        <h2 class="font-semibold text-lg mb-3">2) Result</h2>
+        <div class="grid grid-cols-1 gap-4">
+          <div>
+            <label class="block text-sm font-medium">Converted HTML</label>
+            <textarea id="convertedHTML" class="w-full h-56 border p-3 rounded font-mono text-sm" readonly></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2">Live Preview</label>
+            <!-- sandbox prevents scripts from running; remove sandbox attribute if you explicitly need JS -->
+            <iframe id="previewFrame" class="w-full h-96 border rounded" sandbox=""></iframe>
+            <p class="text-xs text-gray-500 mt-2">
+              Preview is sandboxed (scripts disabled) for safety. If your template requires JS (rare for emails), you can remove <code>sandbox</code> in <code>index.html</code>.
+            </p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="mt-6 bg-white rounded-lg border p-4 md:p-6">
+      <h3 class="font-semibold mb-2">Tips</h3>
+      <ul class="list-disc pl-6 text-sm text-gray-700 space-y-1">
+        <li>Supports simple <code>{{ '{' }}{ variable }}</code> substitutions and basic filters like <code>{{ '{' }}{ variable | default: 'value' }}</code>.</li>
+        <li>Use the JSON box to provide sample values for variables (e.g., <code>event.customer_name</code>).</li>
+        <li>For project sites on GitHub Pages, keep file paths relative (e.g., <code>./converter.js</code>).</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="text-center text-xs text-gray-500 py-8">
+    Built for static hosting (GitHub Pages). No data leaves your browser.
+  </footer>
 </body>
 </html>
