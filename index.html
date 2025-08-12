@@ -2,28 +2,44 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>CIO Email → HTML Converter</title>
+  <title>CIO Email → HTML Converter (i18n)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script defer src="converter.js"></script>
+
+  <!-- No-cache hints (helps GitHub Pages/CDN) -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
+  <!-- Versioned script to avoid stale caches (bump v= when you update the JS) -->
+  <script defer src="converter.js?v=20250812"></script>
+
+  <!-- Tailwind via CDN (no build step) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <meta name="color-scheme" content="dark light">
+  <meta name="color-scheme" content="light dark">
+  <style>
+    textarea, input[type="text"] { background: #ffffff !important; color:#111827 !important; }
+    ::placeholder { color:#9CA3AF !important; opacity:1; }
+  </style>
 </head>
 <body class="bg-gray-50 text-gray-900 min-h-screen">
   <header class="bg-white border-b">
-    <div class="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between gap-4">
       <h1 class="text-xl md:text-2xl font-bold">📧 Customer.io Email → HTML Converter</h1>
-      <a class="text-sm text-blue-600 hover:underline" href="https://customer.io/docs/">{{ '{' }}{ Documentation }}</a>
+      <div class="flex items-center gap-3 text-xs text-gray-500">
+        <span id="langBadge" class="px-2 py-1 rounded bg-gray-100 text-gray-700 border">lang: auto</span>
+        <span>Local-only · No data leaves your browser</span>
+      </div>
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-6 py-6">
+  <main class="max-w-7xl mx-auto px-6 py-6">
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Left column: Inputs -->
       <section class="bg-white rounded-lg border p-4 md:p-6">
         <h2 class="font-semibold text-lg mb-3">1) Provide your Customer.io template</h2>
         <div class="space-y-3">
           <label class="block text-sm font-medium">Paste template (HTML or Liquid)</label>
-          <textarea id="pasteInput" rows="10" placeholder="Paste your Customer.io email HTML here..." class="w-full border rounded p-3 font-mono text-sm"></textarea>
+          <textarea id="pasteInput" rows="10" placeholder="Paste your Customer.io email HTML here..." class="w-full border rounded p-3 font-mono text-sm bg-white text-gray-900 placeholder-gray-400"></textarea>
 
           <div class="flex items-center gap-3">
             <span class="text-sm text-gray-500">or</span>
@@ -35,17 +51,27 @@
           </div>
 
           <label class="block text-sm font-medium mt-2">Optional sample data (JSON)</label>
-          <textarea id="sampleData" rows="5" class="w-full border rounded p-3 font-mono text-sm" placeholder='{
+          <textarea id="sampleData" rows="7" class="w-full border rounded p-3 font-mono text-sm bg-white text-gray-900 placeholder-gray-400" placeholder='{
   "event.customer_name": "Jane Smith",
   "event.vehicle_make": "Toyota",
   "event.license_plate_number": "ABC123",
-  "customer.first_name": "Jane"
+  "customer.first_name": "Jane",
+  "language": "sv",            // or: de, da, en, fr, no
+  "i18n": {                    // optional overrides per language
+    "sv": { "greeting": "Hej", "footer_unsub": "Avsluta prenumeration" }
+  }
 }'></textarea>
 
-          <div class="flex flex-wrap gap-3 pt-2">
-            <button id="convertBtn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">🔁 Convert</button>
-            <button id="downloadBtn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 hidden">💾 Download HTML</button>
-            <button id="copyBtn" class="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900 hidden">📋 Copy HTML</button>
+          <div class="flex flex-wrap items-center gap-4 pt-2">
+            <label class="inline-flex items-center gap-2 text-sm">
+              <input id="wrapEmail" type="checkbox" class="h-4 w-4" checked>
+              <span>Wrap with email boilerplate (600px table)</span>
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm">
+              <input id="inlineCss" type="checkbox" class="h-4 w-4" checked>
+              <span>Apply basic inline CSS</span>
+            </label>
+            <button id="convertBtn" class="ml-auto px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">🔁 Convert</button>
             <button id="resetBtn" class="px-4 py-2 bg-white border rounded hover:bg-gray-50">Reset</button>
           </div>
         </div>
@@ -56,33 +82,37 @@
         <h2 class="font-semibold text-lg mb-3">2) Result</h2>
         <div class="grid grid-cols-1 gap-4">
           <div>
-            <label class="block text-sm font-medium">Converted HTML</label>
-            <textarea id="convertedHTML" class="w-full h-56 border p-3 rounded font-mono text-sm" readonly></textarea>
+            <label class="block text-sm font-medium">Formatted HTML Output</label>
+            <textarea id="convertedHTML" class="w-full h-64 border p-3 rounded font-mono text-sm bg-gray-50 text-gray-900" readonly></textarea>
+            <div class="flex flex-wrap gap-3 mt-3">
+              <button id="downloadBtn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 hidden">💾 Download HTML</button>
+              <button id="copyBtn" class="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900 hidden">📋 Copy HTML</button>
+            </div>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-2">Live Preview</label>
-            <!-- sandbox prevents scripts from running; remove sandbox attribute if you explicitly need JS -->
-            <iframe id="previewFrame" class="w-full h-96 border rounded" sandbox=""></iframe>
-            <p class="text-xs text-gray-500 mt-2">
-              Preview is sandboxed (scripts disabled) for safety. If your template requires JS (rare for emails), you can remove <code>sandbox</code> in <code>index.html</code>.
-            </p>
+            <label class="block text-sm font-medium mb-2">Live Email-style Preview</label>
+            <!-- sandbox prevents external script execution -->
+            <iframe id="previewFrame" class="w-full h-[32rem] border rounded bg-white" sandbox=""></iframe>
           </div>
         </div>
       </section>
     </div>
 
     <section class="mt-6 bg-white rounded-lg border p-4 md:p-6">
-      <h3 class="font-semibold mb-2">Tips</h3>
+      <h3 class="font-semibold mb-2">i18n syntax</h3>
       <ul class="list-disc pl-6 text-sm text-gray-700 space-y-1">
-        <li>Supports simple <code>{{ '{' }}{ variable }}</code> substitutions and basic filters like <code>{{ '{' }}{ variable | default: 'value' }}</code>.</li>
-        <li>Use the JSON box to provide sample values for variables (e.g., <code>event.customer_name</code>).</li>
-        <li>For project sites on GitHub Pages, keep file paths relative (e.g., <code>./converter.js</code>).</li>
+        <li>Provide <code>language</code>/<code>locale</code> in the JSON (e.g., <code>"sv"</code>, <code>"de"</code>, <code>"da"</code>, <code>"en"</code>, <code>"fr"</code>, <code>"no"</code>).</li>
+        <li>Use translations in your template with either:
+          <pre class="bg-gray-50 border rounded p-2 mt-1 text-xs overflow-auto">
+{{ "{{ 'greeting' | t }}" }}   or   {{ "{{ t 'greeting' }}" }}</pre>
+        </li>
+        <li>Built-in keys include: <code>greeting</code>, <code>regards</code>, <code>button_view_account</code>, <code>cta_confirm</code>, <code>cta_reset</code>, <code>cta_view_booking</code>, <code>footer_unsub</code>, <code>subject_generic</code>, <code>intro_line</code>. You can override via the <code>i18n</code> object in your JSON.</li>
       </ul>
     </section>
   </main>
 
   <footer class="text-center text-xs text-gray-500 py-8">
-    Built for static hosting (GitHub Pages). No data leaves your browser.
+    Built for static hosting (GitHub Pages). Cache-busting is automatic when you click Reset.
   </footer>
 </body>
 </html>
