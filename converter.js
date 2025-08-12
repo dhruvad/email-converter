@@ -1,116 +1,6 @@
-# Update the Customer.io converter with lighter input backgrounds, better-formatted HTML output,
-# and an email-style preview wrapper. Then zip for download.
-from pathlib import Path
-import zipfile
+// Customer.io → HTML converter with i18n, pretty formatting, email wrapper, and cache-busting reset.
+const APP_VERSION = '2025.08.12';
 
-base = Path("/mnt/data/cio_email_converter_v2")
-base.mkdir(parents=True, exist_ok=True)
-
-index_html = """<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>CIO Email → HTML Converter</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script defer src="converter.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <meta name="color-scheme" content="light dark">
-  <style>
-    /* Ensure high-contrast inputs regardless of OS/theme */
-    textarea, input[type="text"] { background: #ffffff !important; color:#111827 !important; }
-    ::placeholder { color:#9CA3AF !important; opacity:1; }
-  </style>
-</head>
-<body class="bg-gray-50 text-gray-900 min-h-screen">
-  <header class="bg-white border-b">
-    <div class="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
-      <h1 class="text-xl md:text-2xl font-bold">📧 Customer.io Email → HTML Converter</h1>
-      <div class="text-xs text-gray-500">Local-only · No data leaves your browser</div>
-    </div>
-  </header>
-
-  <main class="max-w-6xl mx-auto px-6 py-6">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Left column: Inputs -->
-      <section class="bg-white rounded-lg border p-4 md:p-6">
-        <h2 class="font-semibold text-lg mb-3">1) Provide your Customer.io template</h2>
-        <div class="space-y-3">
-          <label class="block text-sm font-medium">Paste template (HTML or Liquid)</label>
-          <textarea id="pasteInput" rows="10" placeholder="Paste your Customer.io email HTML here..." class="w-full border rounded p-3 font-mono text-sm bg-white text-gray-900 placeholder-gray-400"></textarea>
-
-          <div class="flex items-center gap-3">
-            <span class="text-sm text-gray-500">or</span>
-            <label class="inline-flex items-center gap-2 cursor-pointer px-3 py-2 border rounded bg-gray-50 hover:bg-gray-100">
-              <input id="fileInput" type="file" accept=".html,.txt" class="hidden" />
-              <span>Upload file</span>
-            </label>
-            <span id="fileName" class="text-sm text-gray-500"></span>
-          </div>
-
-          <label class="block text-sm font-medium mt-2">Optional sample data (JSON)</label>
-          <textarea id="sampleData" rows="5" class="w-full border rounded p-3 font-mono text-sm bg-white text-gray-900 placeholder-gray-400" placeholder='{
-  "event.customer_name": "Jane Smith",
-  "event.vehicle_make": "Toyota",
-  "event.license_plate_number": "ABC123",
-  "customer.first_name": "Jane"
-}'></textarea>
-
-          <div class="flex flex-wrap items-center gap-4 pt-2">
-            <label class="inline-flex items-center gap-2 text-sm">
-              <input id="wrapEmail" type="checkbox" class="h-4 w-4" checked>
-              <span>Wrap with email boilerplate (600px table)</span>
-            </label>
-            <label class="inline-flex items-center gap-2 text-sm">
-              <input id="inlineCss" type="checkbox" class="h-4 w-4" checked>
-              <span>Apply basic inline CSS</span>
-            </label>
-          </div>
-
-          <div class="flex flex-wrap gap-3 pt-2">
-            <button id="convertBtn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">🔁 Convert</button>
-            <button id="downloadBtn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 hidden">💾 Download HTML</button>
-            <button id="copyBtn" class="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900 hidden">📋 Copy HTML</button>
-            <button id="resetBtn" class="px-4 py-2 bg-white border rounded hover:bg-gray-50">Reset</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Right column: Outputs -->
-      <section class="bg-white rounded-lg border p-4 md:p-6">
-        <h2 class="font-semibold text-lg mb-3">2) Result</h2>
-        <div class="grid grid-cols-1 gap-4">
-          <div>
-            <label class="block text-sm font-medium">Formatted HTML Output</label>
-            <textarea id="convertedHTML" class="w-full h-64 border p-3 rounded font-mono text-sm bg-gray-50 text-gray-900" readonly></textarea>
-            <p class="text-xs text-gray-500 mt-1">The output is pretty‑printed for readability and includes optional inline CSS and a 600px email wrapper.</p>
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-2">Live Email‑style Preview</label>
-            <!-- sandbox prevents external script execution -->
-            <iframe id="previewFrame" class="w-full h-[32rem] border rounded bg-white" sandbox=""></iframe>
-          </div>
-        </div>
-      </section>
-    </div>
-
-    <section class="mt-6 bg-white rounded-lg border p-4 md:p-6">
-      <h3 class="font-semibold mb-2">Notes</h3>
-      <ul class="list-disc pl-6 text-sm text-gray-700 space-y-1">
-        <li>Supports simple <code>{{ '{' }}{ variable }}</code> substitutions and <code>default</code> filter (e.g., <code>{{ '{' }}{ name | default: 'there' }}</code>).</li>
-        <li>Preview uses a standard 600px table layout with web‑safe fonts for a CRM‑like appearance.</li>
-        <li>Emails are best built with tables and inline CSS for broad client support.</li>
-      </ul>
-    </section>
-  </main>
-
-  <footer class="text-center text-xs text-gray-500 py-8">
-    Built for static hosting (GitHub Pages). No data leaves your browser.
-  </footer>
-</body>
-</html>
-"""
-
-converter_js = r"""// Customer.io (Liquid-like) → HTML converter with better formatting and an email wrapper.
 class CustomerIOHTMLConverter {
   constructor() {
     this.defaultSampleData = {
@@ -122,13 +12,108 @@ class CustomerIOHTMLConverter {
       'now': new Date().toISOString(),
       'year': new Date().getFullYear().toString()
     };
+
+    // Built-in translations (override via sample JSON's i18n property)
+    this.i18n = {
+      en: {
+        greeting: 'Hello',
+        regards: 'Regards',
+        button_view_account: 'View account',
+        cta_confirm: 'Confirm',
+        cta_reset: 'Reset password',
+        cta_view_booking: 'View booking',
+        footer_unsub: 'Unsubscribe',
+        subject_generic: 'Important account information',
+        intro_line: 'Here’s a summary of your request.'
+      },
+      de: {
+        greeting: 'Hallo',
+        regards: 'Mit freundlichen Grüßen',
+        button_view_account: 'Konto anzeigen',
+        cta_confirm: 'Bestätigen',
+        cta_reset: 'Passwort zurücksetzen',
+        cta_view_booking: 'Buchung anzeigen',
+        footer_unsub: 'Abbestellen',
+        subject_generic: 'Wichtige Kontoinformationen',
+        intro_line: 'Hier ist eine Zusammenfassung Ihrer Anfrage.'
+      },
+      fr: {
+        greeting: 'Bonjour',
+        regards: 'Cordialement',
+        button_view_account: 'Voir le compte',
+        cta_confirm: 'Confirmer',
+        cta_reset: 'Réinitialiser le mot de passe',
+        cta_view_booking: 'Voir la réservation',
+        footer_unsub: 'Se désabonner',
+        subject_generic: 'Informations importantes sur votre compte',
+        intro_line: 'Voici un récapitulatif de votre demande.'
+      },
+      sv: {
+        greeting: 'Hej',
+        regards: 'Vänliga hälsningar',
+        button_view_account: 'Visa konto',
+        cta_confirm: 'Bekräfta',
+        cta_reset: 'Återställ lösenord',
+        cta_view_booking: 'Visa bokning',
+        footer_unsub: 'Avsluta prenumeration',
+        subject_generic: 'Viktig kontoinformation',
+        intro_line: 'Här är en sammanfattning av din begäran.'
+      },
+      da: {
+        greeting: 'Hej',
+        regards: 'Venlig hilsen',
+        button_view_account: 'Se konto',
+        cta_confirm: 'Bekræft',
+        cta_reset: 'Nulstil adgangskode',
+        cta_view_booking: 'Se booking',
+        footer_unsub: 'Afmeld',
+        subject_generic: 'Vigtig kontoinformation',
+        intro_line: 'Her er et resumé af din anmodning.'
+      },
+      no: {
+        greeting: 'Hei',
+        regards: 'Vennlig hilsen',
+        button_view_account: 'Se konto',
+        cta_confirm: 'Bekreft',
+        cta_reset: 'Tilbakestill passord',
+        cta_view_booking: 'Se bestilling',
+        footer_unsub: 'Meld deg av',
+        subject_generic: 'Viktig kontoinformasjon',
+        intro_line: 'Her er et sammendrag av forespørselen din.'
+      }
+    };
   }
 
-  // Basic Liquid-style variable replacement with support for | default: 'value'
-  convertLiquid(html, data) {
+  // Resolve language from payload JSON
+  resolveLang(sample) {
+    const candidates = [
+      sample?.language,
+      sample?.locale,
+      sample?.['event.language'],
+      sample?.['event.locale'],
+      sample?.event?.language,
+      sample?.event?.locale,
+      sample?.customer?.language,
+      sample?.customer?.locale
+    ].filter(Boolean);
+
+    let lang = (candidates[0] || 'en').toString().toLowerCase();
+    if (lang.includes('-')) lang = lang.split('-')[0];   // en-US -> en
+    if (['nb', 'nn'].includes(lang)) lang = 'no';        // Norwegian variants
+    if (!['en','de','fr','sv','da','no'].includes(lang)) lang = 'en';
+    return lang;
+  }
+
+  // Merge built-ins with overrides
+  buildDictionary(lang, sample) {
+    const overrides = (sample && sample.i18n && sample.i18n[lang]) ? sample.i18n[lang] : {};
+    return { ...(this.i18n[lang] || this.i18n.en), ...overrides };
+  }
+
+  // Liquid-style replacement + i18n
+  convertLiquid(html, data, langDict) {
     const resolve = (key) => {
       if (key in data) return data[key];
-      // try nested access (a.b.c)
       const parts = key.split('.');
       let cur = data;
       for (const p of parts) {
@@ -139,30 +124,45 @@ class CustomerIOHTMLConverter {
     };
 
     return html.replace(/{{\s*([^}]+?)\s*}}/g, (match, inner) => {
-      const [left, ...filters] = inner.split('|').map(s => s.trim());
-      const key = left.replace(/^['"]|['"]$/g, '');
+      // supports: {{ 'greeting' | t }}  OR  {{ t 'greeting' }}  OR  {{ event.customer_name | default: 'there' }}
+      const parts = inner.split('|').map(s => s.trim());
+      let left = parts.shift();
+
+      // t as function: {{ t 'key' }}
+      const tFn = left.match(/^t\s+(.+)$/i);
+      if (tFn) {
+        let raw = tFn[1].trim().replace(/^['"]|['"]$/g, '');
+        return (langDict[raw] ?? raw);
+      }
+
+      // normal variable key (or quoted string)
+      let key = left.replace(/^['"]|['"]$/g, '');
       let val = resolve(key);
 
-      // Apply 'default' filter if value is missing/empty
-      if ((val === undefined || val === null || val === '') && filters.length) {
-        for (const f of filters) {
-          const m = f.match(/^default\s*:\s*(.*)$/i);
-          if (m) {
-            let raw = m[1].trim();
-            raw = raw.replace(/^['"]|['"]$/g, '');
-            val = raw;
-            break;
-          }
+      // translation filter
+      if (parts.some(p => p === 't')) {
+        const k = (typeof val === 'string' && val) ? val : key;
+        return (langDict[k] ?? k);
+      }
+
+      // default: 'x' filter
+      for (const f of parts) {
+        const m = f.match(/^default\s*:\s*(.*)$/i);
+        if (m && (val === undefined || val === null || val === '')) {
+          let raw = m[1].trim().replace(/^['"]|['"]$/g, '');
+          val = raw;
+          break;
         }
       }
+
       return (val === undefined) ? match : String(val);
     });
   }
 
-  // Pretty-print HTML for readability (simple indentation; email-safe).
+  // Pretty-print HTML (email-safe indentation)
   prettyHtml(input) {
     const tokens = input
-      .replace(/>\s+</g, '><') // collapse whitespace between tags
+      .replace(/>\s+</g, '><')
       .replace(/\r\n/g, '\n')
       .replace(/\n{2,}/g, '\n')
       .split(/(?=<)|(?<=>)/g)
@@ -174,9 +174,7 @@ class CustomerIOHTMLConverter {
 
     for (let t of tokens) {
       if (!t.trim()) continue;
-      if (t.startsWith('</')) {
-        indent = Math.max(indent - 1, 0);
-      }
+      if (t.startsWith('</')) indent = Math.max(indent - 1, 0);
       const pad = '  '.repeat(indent);
       lines.push(pad + t.trim());
       if (t.startsWith('<') && !t.startsWith('</') && !t.endsWith('/>')) {
@@ -189,7 +187,7 @@ class CustomerIOHTMLConverter {
     return lines.join('\n');
   }
 
-  // Wrap the inner content with a classic CRM-style 600px table layout and inline CSS
+  // 600px email wrapper with inline CSS (for a CRM-like look)
   emailWrapper(inner, applyInlineCss = true) {
     const baseCss = applyInlineCss ? `
       body { margin:0; padding:0; background:#F3F4F6; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
@@ -235,16 +233,23 @@ class CustomerIOHTMLConverter {
 
   convertToHTML(emailHTML, customSampleData = {}, options = { wrap: true, inlineCss: true }) {
     const data = { ...this.defaultSampleData, ...customSampleData };
-    let result = this.convertLiquid(emailHTML, data);
-    if (options.wrap) {
-      result = this.emailWrapper(result, options.inlineCss);
-    }
+    const lang = this.resolveLang(customSampleData || {});
+    const dict = this.buildDictionary(lang, customSampleData || {});
+
+    // reflect detected language in UI
+    try {
+      const badge = document.getElementById('langBadge');
+      if (badge) badge.textContent = `lang: ${lang}`;
+    } catch {}
+
+    let result = this.convertLiquid(emailHTML, data, dict);
+    if (options.wrap) result = this.emailWrapper(result, options.inlineCss);
     return this.prettyHtml(result);
   }
 }
 
+// --- UI wiring + cache-busting reset ---
 const converter = new CustomerIOHTMLConverter();
-
 const $ = (id) => document.getElementById(id);
 
 const fileInput = $('fileInput');
@@ -298,8 +303,8 @@ async function convert() {
   }
 
   const result = converter.convertToHTML(emailHTML, customSampleData, {
-    wrap: wrapEmail.checked,
-    inlineCss: inlineCss.checked
+    wrap: wrapEmail?.checked ?? true,
+    inlineCss: inlineCss?.checked ?? true
   });
   convertedBox.value = result;
 
@@ -332,26 +337,22 @@ async function convert() {
 
 convertBtn.addEventListener('click', () => convert());
 
+// Reset: clear UI + bust caches by reloading with a timestamp query param
 resetBtn.addEventListener('click', () => {
-  pasteInput.value = '';
-  sampleDataInput.value = '';
-  convertedBox.value = '';
-  previewFrame.srcdoc = '';
-  fileInput.value = '';
-  fileName.textContent = '';
-  downloadBtn.classList.add('hidden');
-  copyBtn.classList.add('hidden');
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+  } catch {}
+  if (pasteInput) pasteInput.value = '';
+  if (sampleDataInput) sampleDataInput.value = '';
+  if (convertedBox) convertedBox.value = '';
+  if (previewFrame) previewFrame.srcdoc = '';
+  if (fileInput) fileInput.value = '';
+  if (fileName) fileName.textContent = '';
+  if (downloadBtn) downloadBtn.classList.add('hidden');
+  if (copyBtn) copyBtn.classList.add('hidden');
+
+  const url = new URL(window.location.href);
+  url.searchParams.set('ts', Date.now().toString());
+  window.location.replace(url.toString());
 });
-"""
-
-# Write files
-(index_html_path := base / "index.html").write_text(index_html, encoding="utf-8")
-(converter_js_path := base / "converter.js").write_text(converter_js, encoding="utf-8")
-
-# Zip for the user
-zip_path = "/mnt/data/cio_email_converter_v2.zip"
-with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
-    z.write(index_html_path, arcname="index.html")
-    z.write(converter_js_path, arcname="converter.js")
-
-zip_path
