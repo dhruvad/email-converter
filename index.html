@@ -1,0 +1,32 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CIO Email to HTML Converter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script defer src="converter.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+  <div class="max-w-5xl mx-auto bg-white p-8 rounded-lg shadow">
+    <h1 class="text-2xl font-bold mb-6">📧 CIO Email to HTML Converter</h1>
+    <label class="block mb-2 font-medium">Step 1: Upload your Customer.io Template</label>
+    <input id="fileInput" type="file" accept=".html,.txt" class="mb-4 border p-2 rounded w-full" />
+    <label class="block mt-4 font-medium">Step 2: Optional Sample Data</label>
+    <textarea id="sampleData" rows="4" placeholder='{"event.customer_name": "Jane Smith"}' class="w-full border p-2 rounded"></textarea>
+    <button id="convertBtn" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">🔁 Convert to HTML</button>
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <h2 class="font-semibold mb-2">Original Template</h2>
+        <textarea id="originalHTML" class="w-full h-80 border p-2 rounded" readonly></textarea>
+      </div>
+      <div>
+        <h2 class="font-semibold mb-2">Converted HTML</h2>
+        <textarea id="convertedHTML" class="w-full h-80 border p-2 rounded" readonly></textarea>
+      </div>
+    </div>
+    <button id="downloadBtn" class="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 hidden">💾 Download Converted HTML</button>
+  </div>
+</body>
+</html>
